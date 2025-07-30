@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   getEventTypeHandler,
   managedAvailability,
-} from "../controllers/managedAvailability.js";
+} from "../controllers/commonControllers.js";
 
 const router = Router();
 
