@@ -1,5 +1,6 @@
 {
   "name": "appcheck_server",
+  "type": "module",
   "version": "1.0.0",
   "description": "Server for verifying appcheck for pocktbase",
   "main": "index.js",
@@ -19,6 +20,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "firebase-admin": "^13.4.0",
+    "http-proxy-middleware": "^3.0.3",
     "morgan": "^1.10.1"
   },
   "devDependencies": {
