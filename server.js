@@ -2,7 +2,7 @@ import "./src/config/dotenv.js";
 import express from "express";
 import cors from "cors";
 import morgan from "morgan";
-import mobileRoutes from "./src/routes/mobileRoutes.js";
+import routes from "./src/routes/pocketbaseRoute.js";
 import { errorHandler } from "./src/middlewares/errorHandler.js";
 import { appCheckMiddleware } from "./src/middlewares/appCheckMiddleware.js";
 import { createProxyMiddleware } from "http-proxy-middleware";
@@ -61,7 +61,8 @@ app.use(
 app.use(express.json());
 
 // Routes
-app.use("/server", appCheckMiddleware, mobileRoutes);
+app.use("/mobile_server", appCheckMiddleware, routes);
+app.use("/web_server", routes);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));
