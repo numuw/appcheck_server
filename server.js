@@ -7,6 +7,7 @@ import { errorHandler } from "./src/middlewares/errorHandler.js";
 import { appCheckMiddleware } from "./src/middlewares/appCheckMiddleware.js";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { filterOutBlockedRoutes } from "./src/middlewares/filterBlokedRoutes.js";
+import { paymentRoutes } from "./src/routes/paymentRoute.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -63,6 +64,7 @@ app.use(express.json());
 // Routes
 app.use("/mobile_server", appCheckMiddleware, routes);
 app.use("/web_server", routes);
+app.use("/payment", paymentRoutes);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));

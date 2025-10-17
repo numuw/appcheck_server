@@ -3,7 +3,6 @@ import { pocketbaseRequest } from "../utils/utils.js";
 export const managedAvailability = async (req, res) => {
   try {
     const data = req.body;
-    console.log("00000000000", data);
 
     if (!data) {
       return res.status(400).json({ error: "Missing request body" });
@@ -52,6 +51,7 @@ export const bookManagedEvent = async (req, res) => {
     });
     return res.status(response.status).json(await response.data);
   } catch (error) {
+    console.log(error);
     return res.status(500).json({ error: error.message });
   }
 };
