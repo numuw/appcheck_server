@@ -281,9 +281,7 @@ export const googleConnectionStatus = async (req, res) => {
       data: { userId },
     });
 
-    return res.status(200).json({
-      connected: !!tokenResponse.data.accessToken,
-    });
+    return res.status(200).json(tokenResponse.data);
   } catch (error) {
     console.error("Error fetching Google connection status:", error);
     return res.status(500).json({ error: error.message });
@@ -310,6 +308,27 @@ export const disconnectGoogleCalendar = async (req, res) => {
     });
   } catch (error) {
     console.error("Error disconnecting Google Calendar:", error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const handleUpdateTokens = async (req, res) => {
+  try {
+    const { id, autoCreateMeetingLink } = req.body;
+
+    // Update user's Google Calendar settings in the database
+    const updateResponse = await pocketbaseRequest({
+      url: "/users/google-tokens/update",
+      method: "PUT",
+      data: { id, autoCreateMeetingLink },
+    });
+
+    return res.status(200).json({
+      message: "Google Calendar settings updated successfully",
+      data: updateResponse.data,
+    });
+  } catch (error) {
+    console.error("Error updating Google Calendar settings:", error);
     return res.status(500).json({ error: error.message });
   }
 };

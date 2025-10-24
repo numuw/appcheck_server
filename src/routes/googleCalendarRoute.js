@@ -7,6 +7,7 @@ import {
   getUserCalendarEvents,
   googleConnectionStatus,
   disconnectGoogleCalendar,
+  handleUpdateTokens,
 } from "../controllers/googleCalendarController.js";
 import { decodeJwtAuth } from "../middlewares/jwtAuthMiddleware.js";
 
@@ -16,6 +17,7 @@ router.use(decodeJwtAuth);
 // Google OAuth routes
 router.post("/auth/google/initiate", initiateGoogleAuth);
 router.post("/auth/google/callback", handleGoogleCallback);
+router.put("/auth/google/update-tokens", handleUpdateTokens);
 router.get("/status", googleConnectionStatus);
 router.delete("/disconnect", disconnectGoogleCalendar);
 
