@@ -8,7 +8,6 @@ export const decodeJwtAuth = (req, res, next) => {
   try {
     // Get token from Authorization header
     const token = req.headers["authorization"];
-    console.log("8888888", token);
 
     if (!token) {
       return res.status(401).json({
@@ -24,7 +23,6 @@ export const decodeJwtAuth = (req, res, next) => {
         error: "Invalid token format",
       });
     }
-    console.log(decoded);
     // Attach user ID to request
     req.userId = decoded.id;
     req.user = decoded; // Also attach full decoded token data if needed

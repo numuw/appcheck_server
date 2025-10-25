@@ -38,7 +38,6 @@ export const handleGoogleCallback = async (req, res) => {
     const { code, state } = req.body;
     // get user from token from request header (Authentication)
     const pbUserId = req.userId;
-    console.log("bbbbbbbbbb", pbUserId);
 
     if (!code) {
       return res.status(400).json({ error: "Authorization code is required" });

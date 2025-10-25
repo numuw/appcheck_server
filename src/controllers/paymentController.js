@@ -80,7 +80,6 @@ export const handlePaymentCallback = async (req, res) => {
     const callbackData = req.body;
 
     // Log the callback for debugging
-    console.log("Payment callback received:", callbackData);
 
     // Here you can add your business logic for handling successful/failed payments
     // For example: update order status, send confirmation emails, etc.
