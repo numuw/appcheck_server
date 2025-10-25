@@ -4,7 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
-  "http://localhost:3000/integrations/google-callback" // Redirect URI
+  process.env.FRONTEND_URL + "/integrations/google-callback" // Redirect URI
 );
 
 // Generate auth URL for user consent
