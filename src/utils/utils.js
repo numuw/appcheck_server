@@ -10,7 +10,7 @@ export const pocketbaseRequest = axios.create({
 
 export const proxyMiddleWare = (suffix = "") => {
   return createProxyMiddleware({
-    target: `http://localhost:8090${suffix ? "/" + suffix : ""}`,
+    target: process.env.POCKETBASE_API_URL + `${suffix ? "/" + suffix : ""}`,
     changeOrigin: true,
     ws: true,
     pathRewrite: {
