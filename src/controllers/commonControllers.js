@@ -72,3 +72,30 @@ export const bookRoundRobinEvent = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const getMemberEventSettings = async (req, res) => {
+  try {
+    const memberId = req.params.id;
+    const response = await pocketbaseRequest({
+      url: `/members/event-settings/${memberId}`,
+      method: "GET",
+    });
+    return res.status(response.status).json(await response.data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const cancelBooking = async (req, res) => {
+  try {
+    const data = req.body;
+    const response = await pocketbaseRequest({
+      url: `/cancel-booking`,
+      method: "PATCH",
+      data,
+    });
+    return res.status(response.status).json(await response.data);
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
