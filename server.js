@@ -5,7 +5,6 @@ import morgan from "morgan";
 import routes from "./src/routes/pocketbaseRoute.js";
 import { errorHandler } from "./src/middlewares/errorHandler.js";
 import { appCheckMiddleware } from "./src/middlewares/appCheckMiddleware.js";
-import { createProxyMiddleware } from "http-proxy-middleware";
 import { filterOutBlockedRoutes } from "./src/middlewares/filterBlokedRoutes.js";
 import { paymentRoutes } from "./src/routes/paymentRoute.js";
 import googleCalendarRoutes from "./src/routes/googleCalendarRoute.js";
@@ -27,7 +26,7 @@ app.use((req, res, next) => {
 // Proxy middleware for PocketBase
 app.use("/pb", filterOutBlockedRoutes, proxyMiddleWare());
 app.use(
-  "/api/collections",
+  "/web_server/api/collections",
   filterOutBlockedRoutes,
   proxyMiddleWare("api/collections/")
 );
@@ -47,7 +46,7 @@ app.use(express.json());
 app.use("/mobile_server", appCheckMiddleware, routes);
 app.use("/web_server", routes);
 app.use("/payment", paymentRoutes);
-app.use("/api/calendar", googleCalendarRoutes);
+// app.use("/api/calendar", googleCalendarRoutes);
 
 // 404 handler
 app.use((req, res) => res.status(404).json({ message: "Not Found" }));

@@ -17,6 +17,7 @@ export const proxyMiddleWare = (suffix = "") => {
       "^/pb": "",
     },
     onProxyReq: (proxyReq, req, res) => {
+      console.log("======>", proxyReq);
       // Forward the real client IP
       const clientIP =
         req.ip ||

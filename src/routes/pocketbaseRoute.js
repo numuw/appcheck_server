@@ -9,6 +9,18 @@ import {
   getBooking,
   rescheduleBooking,
 } from "../controllers/commonControllers.js";
+import {
+  initiateGoogleAuth,
+  handleGoogleCallback,
+  checkAvailability,
+  createMeeting,
+  getUserCalendarEvents,
+  googleConnectionStatus,
+  disconnectGoogleCalendar,
+  handleUpdateTokens,
+  updateMemberData,
+} from "../controllers/googleCalendarController.js";
+import { decodeJwtAuth } from "../middlewares/jwtAuthMiddleware.js";
 
 const router = Router();
 
@@ -20,5 +32,20 @@ router.post("/event/book/managed", bookManagedEvent);
 router.post("/event/book/round-robin", bookRoundRobinEvent);
 router.patch("/cancel-booking", cancelBooking);
 router.patch("/reschedule-booking", rescheduleBooking);
+router.post("/update-member-data", updateMemberData);
+
+router.use(decodeJwtAuth);
+
+// Google OAuth routes
+router.post("/api/calendar/auth/google/initiate", initiateGoogleAuth);
+router.post("/api/calendar/auth/google/callback", handleGoogleCallback);
+router.put("/api/calendar/auth/google/update-tokens", handleUpdateTokens);
+router.get("/api/calendar/status", googleConnectionStatus);
+router.delete("/api/calendar/disconnect", disconnectGoogleCalendar);
+
+// Calendar functionality routes
+router.post("/api/calendar/availability/check", checkAvailability);
+router.post("/api/calendar/meeting/create", createMeeting);
+router.post("/api/calendar/events/list", getUserCalendarEvents);
 
 export default router;
