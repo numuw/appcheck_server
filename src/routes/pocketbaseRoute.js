@@ -19,6 +19,7 @@ import {
   disconnectGoogleCalendar,
   handleUpdateTokens,
   updateMemberData,
+  impersonation,
 } from "../controllers/googleCalendarController.js";
 import { decodeJwtAuth } from "../middlewares/jwtAuthMiddleware.js";
 
@@ -33,6 +34,7 @@ router.post("/event/book/round-robin", bookRoundRobinEvent);
 router.patch("/cancel-booking", cancelBooking);
 router.patch("/reschedule-booking", rescheduleBooking);
 router.post("/update-member-data", updateMemberData);
+router.post("/custom-impersonate", impersonation);
 
 router.use(decodeJwtAuth);
 

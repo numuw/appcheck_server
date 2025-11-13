@@ -335,18 +335,38 @@ export const handleUpdateTokens = async (req, res) => {
 export const updateMemberData = async (req, res) => {
   try {
     const data = req.body;
-    const Authentication = req.headers.authorization;
+    const authorization = req.headers.authorization;
     console.log(data);
     const response = await pocketbaseRequest({
       url: `/update-member-data`,
       method: "POST",
       data,
       headers: {
-        Authorization: Authentication,
+        Authorization: authorization,
       },
     });
     return res.status(200).json(response.data);
   } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const impersonation = async (req, res) => {
+  try {
+    const authorization = req.headers.authorization;
+    const body = req.body;
+    const response = await pocketbaseRequest({
+      url: `/custom-impersonate`,
+      method: "POST",
+      data: body,
+      headers: {
+        Authorization: authorization,
+      },
+    });
+    console.log(response.data);
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error("Error in impersonation:", error);
     return res.status(500).json({ error: error.message });
   }
 };
