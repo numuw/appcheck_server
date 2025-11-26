@@ -25,6 +25,9 @@ export const afterBookingCreateSuccess = async (req, res) => {
         try {
           const secret = webhook.secret;
           // hash the booking data for webhook signature
+          /**
+           * TODO: Use hash in the webhook request to verify on the receiving end
+           */
           const hash = crypto
             .createHmac("sha256", secret)
             .update(JSON.stringify(booking))
