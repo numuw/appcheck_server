@@ -24,7 +24,9 @@ app.use((req, res, next) => {
 // THis can be used for both web and mobile calendar routes
 app.use("/web_server/api/calendar", decodeJwtAuth, googleCalendarRoutes);
 // Proxy middleware for PocketBase
+app.use("/pb", proxyMiddleWare());
 app.use("/web_server", proxyMiddleWare());
+app.use("/p", proxyMiddleWare());
 app.use("/mobile_server", appCheckMiddleware, proxyMiddleWare());
 // app.use(
 //   "/web_server/api/collections",
