@@ -25,14 +25,14 @@ app.use((req, res, next) => {
 app.use("/web_server/api/calendar", decodeJwtAuth, googleCalendarRoutes);
 // Proxy middleware for PocketBase
 app.use("/pb", proxyMiddleWare());
+app.use(
+  "/web_server/api/collections",
+  filterOutBlockedRoutes,
+  proxyMiddleWare("api/collections/")
+);
 app.use("/web_server", proxyMiddleWare());
 app.use("/p", proxyMiddleWare());
 app.use("/mobile_server", appCheckMiddleware, proxyMiddleWare());
-// app.use(
-//   "/web_server/api/collections",
-//   filterOutBlockedRoutes,
-//   proxyMiddleWare("api/collections/")
-// );
 // app.use("/event-type/", filterOutBlockedRoutes, proxyMiddleWare("event-type/"));
 // app.use(
 //   "/availability/",
