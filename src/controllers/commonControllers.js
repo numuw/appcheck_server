@@ -37,6 +37,26 @@ export const getEventTypeHandler = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+export const getUserEvent = async (req, res) => {
+  try {
+    const data = req.body;
+    const headers = req.headers;
+    if (!data) {
+      return res.status(400).json({ error: "Missing request body" });
+    }
+    const response = await pocketbaseRequest({
+      url: "/get-user-event",
+      method: "POST",
+      data,
+      headers,
+    });
+
+    return res.status(response.status).json(await response.data);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: error.message });
+  }
+};
 
 export const bookManagedEvent = async (req, res) => {
   try {
