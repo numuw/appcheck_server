@@ -129,3 +129,21 @@ export const rescheduleBooking = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
+
+export const reinviteUser = async (req, res) => {
+  try {
+    const authorization = req.headers.authorization;
+    const response = await pocketbaseRequest({
+      url: `/re-invite-user`,
+      method: "POST",
+      data: req.body,
+      headers: {
+        Authorization: authorization,
+      },
+    });
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({ error: error });
+  }
+};

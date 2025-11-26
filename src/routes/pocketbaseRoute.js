@@ -8,6 +8,7 @@ import {
   cancelBooking,
   getBooking,
   rescheduleBooking,
+  reinviteUser,
 } from "../controllers/commonControllers.js";
 import {
   initiateGoogleAuth,
@@ -20,7 +21,6 @@ import {
   handleUpdateTokens,
   updateMemberData,
   impersonation,
-  reinviteUser,
 } from "../controllers/googleCalendarController.js";
 import { decodeJwtAuth } from "../middlewares/jwtAuthMiddleware.js";
 import { afterBookingCreateSuccess } from "../controllers/webhookController.js";
