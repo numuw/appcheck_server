@@ -20,6 +20,7 @@ import {
   handleUpdateTokens,
   updateMemberData,
   impersonation,
+  reinviteUser,
 } from "../controllers/googleCalendarController.js";
 import { decodeJwtAuth } from "../middlewares/jwtAuthMiddleware.js";
 import { afterBookingCreateSuccess } from "../controllers/webhookController.js";
@@ -34,6 +35,7 @@ router.post("/event/book/managed", bookManagedEvent);
 router.post("/event/book/round-robin", bookRoundRobinEvent);
 router.patch("/cancel-booking", cancelBooking);
 router.patch("/reschedule-booking", rescheduleBooking);
+router.post("/re-invite-user", reinviteUser);
 router.post("/update-member-data", updateMemberData);
 router.post("/custom-impersonate", impersonation);
 

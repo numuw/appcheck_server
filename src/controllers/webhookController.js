@@ -37,7 +37,7 @@ export const afterBookingCreateSuccess = async (req, res) => {
             timeout: 10000, // Changed from 10 to 10000 (10 seconds in milliseconds)
             headers: {
               "Content-Type": "application/json",
-              "x-webhook-signature": hash,
+              "x-webhook-signature": secret,
             },
           }).catch((error) => {
             console.log(error.response);
