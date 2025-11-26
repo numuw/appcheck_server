@@ -7,7 +7,8 @@ import { appCheckMiddleware } from "./src/middlewares/appCheckMiddleware.js";
 import googleCalendarRoutes from "./src/routes/googleCalendarRoute.js";
 import { proxyMiddleWare } from "./src/utils/utils.js";
 import { decodeJwtAuth } from "./src/middlewares/jwtAuthMiddleware.js";
-
+import router from "./src/routes/pocketbaseRoute.js";
+import { afterBookingCreateSuccess } from "./src/controllers/webhookController.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.set("trust proxy", true);
@@ -22,6 +23,7 @@ app.use((req, res, next) => {
 });
 
 // THis can be used for both web and mobile calendar routes
+app.use("/web_server/afterBookingCreateSuccess", afterBookingCreateSuccess);
 app.use("/web_server/api/calendar", decodeJwtAuth, googleCalendarRoutes);
 // Proxy middleware for PocketBase
 app.use("/pb", proxyMiddleWare());
