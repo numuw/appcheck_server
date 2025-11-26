@@ -22,9 +22,10 @@ import {
   impersonation,
 } from "../controllers/googleCalendarController.js";
 import { decodeJwtAuth } from "../middlewares/jwtAuthMiddleware.js";
+import { afterBookingCreateSuccess } from "../controllers/webhookController.js";
 
 const router = Router();
-
+router.post("/afterBookingCreateSuccess", afterBookingCreateSuccess);
 router.get("/members/event-settings/:id", getMemberEventSettings);
 router.get("/bookings/get-one", getBooking);
 router.post("/availability/single", managedAvailability);
