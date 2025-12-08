@@ -16,12 +16,13 @@ import {
 import { afterBookingCreateSuccess } from "../controllers/webhookController.js";
 
 const router = Router();
-router.post("/", afterBookingCreateSuccess);
+router.post("/afterBookingCreateSuccess", afterBookingCreateSuccess);
 router.get("/members/event-settings/:id", getMemberEventSettings);
 router.get("/bookings/get-one", getBooking);
 router.post("/availability/single", managedAvailability);
 router.post("/event-type/single", getEventTypeHandler);
 router.post("/event/book/managed", bookManagedEvent);
+
 router.post("/event/book/round-robin", bookRoundRobinEvent);
 router.patch("/cancel-booking", cancelBooking);
 router.patch("/reschedule-booking", rescheduleBooking);

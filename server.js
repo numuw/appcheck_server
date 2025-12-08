@@ -7,7 +7,7 @@ import { appCheckMiddleware } from "./src/middlewares/appCheckMiddleware.js";
 import googleCalendarRoutes from "./src/routes/googleCalendarRoute.js";
 import { proxyMiddleWare } from "./src/utils/utils.js";
 import { decodeJwtAuth } from "./src/middlewares/jwtAuthMiddleware.js";
-import router from "./src/routes/pocketbaseRoute.js";
+import createSessionRouter from "./src/routes/createSessionRoute.js";
 const app = express();
 const PORT = process.env.PORT || 5000;
 app.set("trust proxy", true);
@@ -17,19 +17,23 @@ app.use(morgan("dev"));
 
 // Log all requests
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  console.log(
+    `[${new Date().toISOString()}] ${req.method} Body-${JSON.stringify(
+      req.body
+    )} ${req.originalUrl}`
+  );
   next();
 });
 
-// THis can be used for both web and mobile calendar routes
-app.use("/web_server/afterBookingCreateSuccess", router);
-app.use("/web_server/api/calendar", decodeJwtAuth, googleCalendarRoutes);
 // Proxy middleware for PocketBase
 app.use("/pb", proxyMiddleWare());
 app.use("/web_server/api/collections", proxyMiddleWare("api/collections/"));
 app.use("/web_server", proxyMiddleWare());
-app.use("/p", proxyMiddleWare());
 app.use("/mobile_server", appCheckMiddleware, proxyMiddleWare());
+app.use(express.json());
+app.use("/create-session", createSessionRouter);
+// THis can be used for both web and mobile calendar routes
+app.use("/web_server/api/calendar", decodeJwtAuth, googleCalendarRoutes);
 // app.use("/event-type/", filterOutBlockedRoutes, proxyMiddleWare("event-type/"));
 // app.use(
 //   "/availability/",
