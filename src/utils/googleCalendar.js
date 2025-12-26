@@ -10,8 +10,8 @@ const oauth2Client = new OAuth2Client(
 // Generate auth URL for user consent
 export const getAuthUrl = () => {
   const scopes = [
-    "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/calendar.freebusy",
   ];
 
   return oauth2Client.generateAuthUrl({
