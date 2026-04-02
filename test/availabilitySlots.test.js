@@ -48,7 +48,10 @@ test("buildUtcDateTimeFromStoredClock resolves fixed-offset midnight into the pr
   });
 
   assert.equal(slotStart.toISO(), "2030-04-04T21:00:00.000Z");
-  assert.equal(slotStart.setZone("UTC+3").toISO(), "2030-04-05T00:00:00.000+03:00");
+  assert.equal(
+    slotStart.setZone("UTC+3").toISO(),
+    "2030-04-05T00:00:00.000+03:00",
+  );
 });
 
 test("buildUtcDateTimeFromStoredClock resolves both sides of a spring-forward DST day", () => {
@@ -76,9 +79,15 @@ test("buildUtcDateTimeFromStoredClock resolves both sides of a spring-forward DS
   });
 
   assert.equal(beforeShift.toISO(), "2030-03-31T00:30:00.000Z");
-  assert.equal(beforeShift.setZone("Europe/London").toFormat("yyyy-MM-dd HH:mm"), "2030-03-31 00:30");
+  assert.equal(
+    beforeShift.setZone("Europe/London").toFormat("yyyy-MM-dd HH:mm"),
+    "2030-03-31 00:30",
+  );
   assert.equal(afterShift.toISO(), "2030-03-31T02:30:00.000Z");
-  assert.equal(afterShift.setZone("Europe/London").toFormat("yyyy-MM-dd HH:mm"), "2030-03-31 03:30");
+  assert.equal(
+    afterShift.setZone("Europe/London").toFormat("yyyy-MM-dd HH:mm"),
+    "2030-03-31 03:30",
+  );
 });
 
 test("buildUtcDateTimeFromStoredClock resolves a fall-back DST slot that maps to the previous UTC day", () => {
@@ -97,7 +106,10 @@ test("buildUtcDateTimeFromStoredClock resolves a fall-back DST slot that maps to
 
   assert.equal(storedClock, "23:30");
   assert.equal(slotStart.toISO(), "2030-10-26T23:30:00.000Z");
-  assert.equal(slotStart.setZone("Europe/London").toFormat("yyyy-MM-dd HH:mm"), "2030-10-27 00:30");
+  assert.equal(
+    slotStart.setZone("Europe/London").toFormat("yyyy-MM-dd HH:mm"),
+    "2030-10-27 00:30",
+  );
 });
 
 test("buildGroupedSlotsForAvailability groups a host midnight slot under the previous viewer day", () => {
@@ -198,7 +210,15 @@ test("buildGroupedSlotsForAvailability removes slots that overlap bookings with 
 
 test("date overrides take precedence over weekly availability", () => {
   const localDate = DateTime.fromISO("2030-04-05", { zone: "UTC" });
-  const weeklyAvailability = [[], [], [], [], [], [{ start: "09:00", end: "17:00" }], []];
+  const weeklyAvailability = [
+    [],
+    [],
+    [],
+    [],
+    [],
+    [{ start: "09:00", end: "17:00" }],
+    [],
+  ];
   const dateOverrides = [
     {
       date: "2030-04-05",
@@ -265,7 +285,15 @@ test("combineAvailabilityRecords keeps user ownership on weekly and override slo
   const combined = combineAvailabilityRecords([
     {
       user: "alpha",
-      availability: [[], [], [], [], [], [{ start: "09:00", end: "10:00" }], []],
+      availability: [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [{ start: "09:00", end: "10:00" }],
+        [],
+      ],
       dateOverrides: [
         {
           date: "2030-04-05",
@@ -275,7 +303,15 @@ test("combineAvailabilityRecords keeps user ownership on weekly and override slo
     },
     {
       user: "beta",
-      availability: [[], [], [], [], [], [{ start: "13:00", end: "14:00" }], []],
+      availability: [
+        [],
+        [],
+        [],
+        [],
+        [],
+        [{ start: "13:00", end: "14:00" }],
+        [],
+      ],
       dateOverrides: [],
     },
   ]);

@@ -107,7 +107,8 @@ const resolveStoredUtcDateTime = ({ localDate, storedClock }) => {
   const matchingCandidate = [-1, 0, 1]
     .map((dayOffset) => baseUtc.plus({ days: dayOffset }))
     .find(
-      (candidate) => candidate.setZone(localDate.zoneName).toISODate() === localDateISO,
+      (candidate) =>
+        candidate.setZone(localDate.zoneName).toISODate() === localDateISO,
     );
 
   return matchingCandidate ?? baseUtc;
@@ -437,7 +438,13 @@ export const buildManagedAvailabilityResponse = async ({
         { expand: "user" },
       ),
     ]);
-
+  console.log(
+    "klklkl",
+    eventType,
+    bookings,
+    allAvailability,
+    rawEventTypeSetting,
+  );
   if (!eventType) {
     return { status: 404, body: { error: "Event type not found" } };
   }
