@@ -1,20 +1,46 @@
+import {
+  buildManagedAvailabilityResponse,
+  buildRoundRobinAvailabilityResponse,
+} from "../utils/availabilitySlots.js";
 import { pocketbaseRequest } from "../utils/utils.js";
 
 export const managedAvailability = async (req, res) => {
+  try {
+    const data = req.body;
+    console.log("00000", data);
+
+    if (!data) {
+      return res.status(400).json({ error: "Missing request body" });
+    }
+
+    const response = await buildManagedAvailabilityResponse({
+      ...data,
+      viewerTimezone: data.timezone || "UTC",
+    });
+
+    return res.status(response.status).json(response.body);
+  } catch (error) {
+    console.log(error?.response?.data || error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+export const roundRobinAvailability = async (req, res) => {
   try {
     const data = req.body;
 
     if (!data) {
       return res.status(400).json({ error: "Missing request body" });
     }
-    const response = await pocketbaseRequest({
-      url: "/availability/single",
-      method: "POST",
-      data,
+
+    const response = await buildRoundRobinAvailabilityResponse({
+      ...data,
+      viewerTimezone: data.timezone || "UTC",
     });
-    return res.status(response.status).json(await response.data);
+
+    return res.status(response.status).json(response.body);
   } catch (error) {
-    console.log(error?.response?.data);
+    console.log(error?.response?.data || error);
     return res.status(500).json({ error: error.message });
   }
 };

@@ -4,7 +4,9 @@ import cors from "cors";
 import morgan from "morgan";
 import { errorHandler } from "./src/middlewares/errorHandler.js";
 import { appCheckMiddleware } from "./src/middlewares/appCheckMiddleware.js";
+import { filterOutBlockedRoutes } from "./src/middlewares/filterBlokedRoutes.js";
 import googleCalendarRoutes from "./src/routes/googleCalendarRoute.js";
+import pocketbaseRoute from "./src/routes/pocketbaseRoute.js";
 import { proxyMiddleWare } from "./src/utils/utils.js";
 import { decodeJwtAuth } from "./src/middlewares/jwtAuthMiddleware.js";
 import createSessionRouter from "./src/routes/createSessionRoute.js";
@@ -19,16 +21,27 @@ app.use(morgan("dev"));
 app.use((req, res, next) => {
   console.log(
     `[${new Date().toISOString()}] ${req.method} Body-${JSON.stringify(
-      req.body
-    )} ${req.originalUrl}`
+      req.body,
+    )} ${req.originalUrl}`,
   );
   next();
 });
 
-// Proxy middleware for PocketBase
-app.use("/web_server", proxyMiddleWare());
-app.use("/mobile_server", appCheckMiddleware, proxyMiddleWare());
 app.use(express.json());
+
+// Custom Node-backed PocketBase routes.
+app.use("/web_server", pocketbaseRoute);
+app.use("/mobile_server", appCheckMiddleware, pocketbaseRoute);
+
+// Proxy remaining PocketBase routes.
+app.use("/web_server", filterOutBlockedRoutes, proxyMiddleWare());
+app.use(
+  "/mobile_server",
+  appCheckMiddleware,
+  filterOutBlockedRoutes,
+  proxyMiddleWare(),
+);
+
 app.use("/create-session", createSessionRouter);
 // This can be used for both web and mobile calendar routes
 app.use("/api/calendar", decodeJwtAuth, googleCalendarRoutes);
