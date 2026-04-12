@@ -20,8 +20,8 @@ const router = Router();
 router.post("/afterBookingCreateSuccess", afterBookingCreateSuccess);
 router.get("/members/event-settings/:id", getMemberEventSettings);
 router.get("/bookings/get-one", getBooking);
-// router.post("/availability/single", managedAvailability);
-// router.post("/availability/round-robin", roundRobinAvailability);
+router.post("/availability/single", managedAvailability);
+router.post("/availability/round-robin", roundRobinAvailability);
 router.post("/event-type/single", getEventTypeHandler);
 router.post("/event/book/managed", bookManagedEvent);
 
