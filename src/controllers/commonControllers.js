@@ -7,7 +7,6 @@ import { pocketbaseRequest } from "../utils/utils.js";
 export const managedAvailability = async (req, res) => {
   try {
     const data = req.body;
-    console.log("00000", data);
 
     if (!data) {
       return res.status(400).json({ error: "Missing request body" });
@@ -32,6 +31,8 @@ export const roundRobinAvailability = async (req, res) => {
     if (!data) {
       return res.status(400).json({ error: "Missing request body" });
     }
+
+    console.log("ROund ROOOO");
 
     const response = await buildRoundRobinAvailabilityResponse({
       ...data,

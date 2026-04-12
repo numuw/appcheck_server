@@ -1,11 +1,11 @@
 import { Router } from "express";
 import {
-  bookManagedEvent,
-  bookRoundRobinEvent,
+  managedAvailability,
+  roundRobinAvailability,
 } from "../controllers/commonControllers.js";
 
 const availabilityRouter = Router();
-availabilityRouter.post("/event/book/managed", bookManagedEvent);
-availabilityRouter.post("/event/book/round-robin", bookRoundRobinEvent);
+availabilityRouter.post("/single", managedAvailability);
+availabilityRouter.post("/round-robin", roundRobinAvailability);
 
 export default availabilityRouter;

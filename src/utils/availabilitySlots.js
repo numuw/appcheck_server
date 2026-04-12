@@ -22,11 +22,29 @@ const getOneOrNull = async (collectionName, id) => {
   }
 };
 
-const getFirstListItemOrNull = async (collectionName, filter, options) => {
+/**
+ *
+ * @param {string} eventTypeId
+ * @param {string | null} userId
+ * @param {boolean | null} roundRobin
+ * @returns {Promise<{eventSetting: {settings:object}, user: object} | null>}
+ */
+const getUserEventSetting = async (
+  eventTypeId,
+  userId = null,
+  roundRobin = false,
+) => {
   try {
-    return await db
-      .collection(collectionName)
-      .getFirstListItem(filter, options);
+    const response = await db.send("/member/event_type_setting", {
+      method: "POST",
+      body: {
+        eventTypeId,
+        userId,
+        roundRobin,
+      },
+    });
+
+    return response;
   } catch (error) {
     if (isNotFoundError(error)) return null;
     throw error;
@@ -432,19 +450,9 @@ export const buildManagedAvailabilityResponse = async ({
       db.collection("availability").getFullList({
         filter: `user = "${userId}" && organization = "${orgId}"`,
       }),
-      getFirstListItemOrNull(
-        "event_type_settings",
-        `event_type = "${eventTypeId}" && user = "${userId}"`,
-        { expand: "user" },
-      ),
+      getUserEventSetting(eventTypeId, userId),
     ]);
-  console.log(
-    "klklkl",
-    eventType,
-    bookings,
-    allAvailability,
-    rawEventTypeSetting,
-  );
+
   if (!eventType) {
     return { status: 404, body: { error: "Event type not found" } };
   }
@@ -458,9 +466,9 @@ export const buildManagedAvailabilityResponse = async ({
     };
   }
 
-  const expandedUser = rawEventTypeSetting?.expand?.user ?? null;
+  const expandedUser = rawEventTypeSetting?.user ?? null;
 
-  const eventTypeSetting = normalizeEventTypeSettingRecord(rawEventTypeSetting);
+  const eventTypeSetting = rawEventTypeSetting?.eventSetting;
   const allNormalizedAvailability = allAvailability.map(
     normalizeAvailabilityRecord,
   );
@@ -541,39 +549,35 @@ export const buildRoundRobinAvailabilityResponse = async ({
     new Set((members || []).map((member) => member?.user).filter(Boolean)),
   );
 
-  const [
-    organization,
-    eventType,
-    rawEventTypeSetting,
-    allAvailability,
-    allBookings,
-  ] = await Promise.all([
-    getOneOrNull("event_types", eventTypeId),
-    getFirstListItemOrNull(
-      "event_type_settings",
-      `event_type = "${eventTypeId}"`,
-    ),
-    memberUserIds.length
-      ? db.collection("availability").getFullList({
-          filter: `(${memberUserIds
-            .map((userId) => `user = "${userId}"`)
-            .join(" || ")}) && organization = "${orgId}"`,
-        })
-      : Promise.resolve([]),
-    Promise.all(
-      memberUserIds.map((userId) =>
-        db.collection("bookings").getFullList({
-          filter: `user = "${userId}" && startTime >= "${DateTime.utc().toISO()}" && status != "cancelled" && status != "unconfirmed"`,
-        }),
+  const [rawEventTypeSetting, allAvailability, allBookings] = await Promise.all(
+    [
+      getUserEventSetting(
+        eventTypeId,
+        null,
+        true, // roundRobin
       ),
-    ),
-  ]);
-
-  if (!eventType) {
+      memberUserIds.length
+        ? db.collection("availability").getFullList({
+            filter: `(${memberUserIds
+              .map((userId) => `user = "${userId}"`)
+              .join(" || ")}) && organization = "${orgId}"`,
+          })
+        : Promise.resolve([]),
+      Promise.all(
+        memberUserIds.map((userId) =>
+          db.collection("bookings").getFullList({
+            filter: `user = "${userId}" && startTime >= "${DateTime.utc().toISO()}" && status != "cancelled" && status != "unconfirmed"`,
+          }),
+        ),
+      ),
+    ],
+  );
+  console.log("EEEEEEEEE", rawEventTypeSetting, orgId);
+  if (!rawEventTypeSetting) {
     return { status: 404, body: { error: "Event type not found" } };
   }
-
-  if (eventType.organization !== orgId) {
+  console.log("RawEventTypeSetting", rawEventTypeSetting);
+  if (rawEventTypeSetting?.eventSetting?.settings?.organization?.id !== orgId) {
     return {
       status: 400,
       body: {
@@ -582,7 +586,7 @@ export const buildRoundRobinAvailabilityResponse = async ({
     };
   }
 
-  const eventTypeSetting = normalizeEventTypeSettingRecord(rawEventTypeSetting);
+  const eventTypeSetting = rawEventTypeSetting.eventSetting;
   const allNormalizedAvailability = allAvailability
     .map(normalizeAvailabilityRecord)
     .filter((entry) => entry.isDefault === true);
