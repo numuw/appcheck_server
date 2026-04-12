@@ -32,6 +32,8 @@ app.use("/mobile_server", appCheckMiddleware, proxyMiddleWare());
 
 app.use(express.json());
 
+app.use("/health", (req, res) => res.status(200).json({ status: "OK" }));
+
 // Custom Node-backed PocketBase routes.
 app.use("/availability", availabilityRouter);
 
