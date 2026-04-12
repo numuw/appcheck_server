@@ -441,30 +441,15 @@ export const buildManagedAvailabilityResponse = async ({
   const nowUtc = DateTime.utc();
   const effectiveIncrement = Number(incrementStep ?? 60);
 
-  const [eventType, bookings, allAvailability, rawEventTypeSetting] =
-    await Promise.all([
-      getOneOrNull("event_types", eventTypeId),
-      db.collection("bookings").getFullList({
-        filter: `user = "${userId}" && startTime >= "${nowUtc.toISO()}" && status != "cancelled" && status != "unconfirmed"`,
-      }),
-      db.collection("availability").getFullList({
-        filter: `user = "${userId}" && organization = "${orgId}"`,
-      }),
-      getUserEventSetting(eventTypeId, userId),
-    ]);
-
-  if (!eventType) {
-    return { status: 404, body: { error: "Event type not found" } };
-  }
-
-  if (eventType.organization !== orgId) {
-    return {
-      status: 400,
-      body: {
-        error: "Event type does not belong to the specified organization",
-      },
-    };
-  }
+  const [bookings, allAvailability, rawEventTypeSetting] = await Promise.all([
+    db.collection("bookings").getFullList({
+      filter: `user = "${userId}" && startTime >= "${nowUtc.toISO()}" && status != "cancelled" && status != "unconfirmed"`,
+    }),
+    db.collection("availability").getFullList({
+      filter: `user = "${userId}" && organization = "${orgId}"`,
+    }),
+    getUserEventSetting(eventTypeId, userId),
+  ]);
 
   const expandedUser = rawEventTypeSetting?.user ?? null;
 
