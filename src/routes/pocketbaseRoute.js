@@ -23,9 +23,9 @@ router.get("/bookings/get-one", getBooking);
 router.post("/availability/single", managedAvailability);
 router.post("/availability/round-robin", roundRobinAvailability);
 router.post("/event-type/single", getEventTypeHandler);
-router.post("/event/book/managed", bookManagedEvent);
+// router.post("/event/book/managed", bookManagedEvent);
 
-router.post("/event/book/round-robin", bookRoundRobinEvent);
+// router.post("/event/book/round-robin", bookRoundRobinEvent);
 router.patch("/cancel-booking", cancelBooking);
 router.patch("/reschedule-booking", rescheduleBooking);
 router.post("/re-invite-user", reinviteUser);
