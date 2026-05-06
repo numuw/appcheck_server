@@ -28,7 +28,7 @@ export const proxyMiddleWare = (suffix = "") => {
       // Set headers to preserve client IP information
       proxyReq.setHeader(
         "X-Forwarded-For",
-        req.get("X-Forwarded-For") || clientIP
+        req.get("X-Forwarded-For") || clientIP,
       );
       proxyReq.setHeader("X-Real-IP", clientIP);
       proxyReq.setHeader("X-Forwarded-Proto", req.protocol);
@@ -41,8 +41,6 @@ export const proxyMiddleWare = (suffix = "") => {
     },
   });
 };
-
-export const db = new pocketbase(process.env.POCKETBASE_API_URL);
 
 /**
  * Refresh Google access token using refresh token
@@ -71,3 +69,19 @@ export async function refreshGoogleAccessToken(refreshToken) {
     throw error;
   }
 }
+
+const db = new pocketbase(process.env.POCKETBASE_API_URL);
+
+// Disable auto-cancellation for server-side
+db.autoCancellation(false);
+
+// Authenticate as Super Admin
+await db.admins.authWithPassword(
+  process.env.PB_ADMIN_EMAIL,
+  process.env.PB_ADMIN_PASSWORD,
+  {
+    autoRefreshThreshold: 30 * 60, // Refresh token 30 minutes before it expires
+  },
+);
+
+export { db };

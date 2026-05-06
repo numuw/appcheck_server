@@ -78,10 +78,37 @@ const normalizeEventTypeSettingRecord = (record) => ({
   settings: safeParseJSON(record?.settings, {}),
 });
 
+const parseDateTimeUtc = (value) => {
+  if (DateTime.isDateTime(value)) {
+    return value.toUTC();
+  }
+
+  if (typeof value !== "string") {
+    return DateTime.invalid("Invalid booking datetime value");
+  }
+
+  const trimmed = value.trim();
+  const isoCandidate = trimmed.includes(" ")
+    ? trimmed.replace(/\s+/, "T")
+    : trimmed;
+
+  let parsed = DateTime.fromISO(isoCandidate, { setZone: true });
+
+  if (!parsed.isValid) {
+    parsed = DateTime.fromSQL(trimmed, { setZone: true });
+  }
+
+  if (!parsed.isValid && isoCandidate !== trimmed) {
+    parsed = DateTime.fromSQL(isoCandidate, { setZone: true });
+  }
+
+  return parsed.isValid ? parsed.toUTC() : parsed;
+};
+
 const normalizeBookingRecord = (record) => ({
   ...record,
-  start: DateTime.fromISO(record.startTime, { zone: "utc" }),
-  end: DateTime.fromISO(record.endTime, { zone: "utc" }),
+  start: parseDateTimeUtc(record.startTime),
+  end: parseDateTimeUtc(record.endTime),
 });
 
 const parseClockToMinutes = (clock) => {
@@ -355,7 +382,12 @@ const buildGroupedSlotsForAvailability = ({
     hostTimezone: availabilityTimezone,
   });
 
-  const normalizedBookings = bookings.map(normalizeBookingRecord);
+  const normalizedBookings = bookings
+    .map(normalizeBookingRecord)
+    .filter(
+      ({ start, end }) =>
+        start?.isValid && end?.isValid && end.toMillis() > start.toMillis(),
+    );
   const groupedSlots = {};
   let cursor = hostRange.start;
 

@@ -208,6 +208,42 @@ test("buildGroupedSlotsForAvailability removes slots that overlap bookings with 
   );
 });
 
+test("buildGroupedSlotsForAvailability excludes slots when booking timestamps use SQL-like UTC strings", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-10",
+        availability: [{ start: "09:00", end: "11:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [
+      {
+        startTime: "2030-04-10 09:00:00.000Z",
+        endTime: "2030-04-10 10:00:00.000Z",
+      },
+    ],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 30,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+  });
+
+  assert.deepEqual(
+    groupedSlots["10"].map((slot) => slot.utcTime),
+    ["2030-04-10T10:00:00.000Z", "2030-04-10T10:30:00.000Z"],
+  );
+});
+
 test("date overrides take precedence over weekly availability", () => {
   const localDate = DateTime.fromISO("2030-04-05", { zone: "UTC" });
   const weeklyAvailability = [
