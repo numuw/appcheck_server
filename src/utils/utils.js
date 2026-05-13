@@ -1,8 +1,13 @@
 import axios from "axios";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import pocketbase from "pocketbase";
+
+const PB_BASE_URL = process.env.POCKETBASE_API_URL || "http://127.0.0.1:8090";
+const isTestRuntime =
+  process.env.NODE_ENV === "test" || process.argv.includes("--test");
+
 export const pocketbaseRequest = axios.create({
-  baseURL: process.env.POCKETBASE_API_URL,
+  baseURL: PB_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -70,18 +75,25 @@ export async function refreshGoogleAccessToken(refreshToken) {
   }
 }
 
-const db = new pocketbase(process.env.POCKETBASE_API_URL);
+const db = new pocketbase(PB_BASE_URL);
 
 // Disable auto-cancellation for server-side
 db.autoCancellation(false);
 
-// Authenticate as Super Admin
-await db.admins.authWithPassword(
-  process.env.PB_ADMIN_EMAIL,
-  process.env.PB_ADMIN_PASSWORD,
-  {
-    autoRefreshThreshold: 30 * 60, // Refresh token 30 minutes before it expires
-  },
-);
+// Authenticate as super admin when credentials are available. Tests and local
+// utility runs may import this module without PocketBase secrets configured.
+if (process.env.PB_ADMIN_EMAIL && process.env.PB_ADMIN_PASSWORD) {
+  await db.admins.authWithPassword(
+    process.env.PB_ADMIN_EMAIL,
+    process.env.PB_ADMIN_PASSWORD,
+    {
+      autoRefreshThreshold: 30 * 60, // Refresh token 30 minutes before it expires
+    },
+  );
+} else if (!isTestRuntime) {
+  console.warn(
+    "PocketBase admin credentials are missing. Continuing without admin auth.",
+  );
+}
 
 export { db };

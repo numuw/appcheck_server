@@ -244,6 +244,281 @@ test("buildGroupedSlotsForAvailability excludes slots when booking timestamps us
   );
 });
 
+test("buildGroupedSlotsForAvailability applies rolling future booking limits by open date count", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-05",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-15",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: true,
+      limitFutureBookingsMode: "rolling",
+      limitFutureBookingsValue: 1,
+      limitFutureBookingsUnit: "calendar_days",
+      limitFutureBookingsAlwaysAvailable: false,
+    },
+  });
+
+  assert.ok(groupedSlots["5"]);
+  assert.equal(groupedSlots["15"], undefined);
+});
+
+test("buildGroupedSlotsForAvailability calendar-days mode returns requested number of open dates", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-01",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-03",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-05",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: true,
+      limitFutureBookingsMode: "rolling",
+      limitFutureBookingsValue: 2,
+      limitFutureBookingsUnit: "calendar_days",
+      limitFutureBookingsAlwaysAvailable: false,
+    },
+  });
+
+  assert.ok(groupedSlots["1"]);
+  assert.ok(groupedSlots["3"]);
+  assert.equal(groupedSlots["5"], undefined);
+});
+
+test("buildGroupedSlotsForAvailability applies date-range future booking limits", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-09",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-11",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-13",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: true,
+      limitFutureBookingsMode: "dateRange",
+      limitFutureBookingsStartDate: "2030-04-10",
+      limitFutureBookingsEndDate: "2030-04-12",
+    },
+  });
+
+  assert.equal(groupedSlots["9"], undefined);
+  assert.ok(groupedSlots["11"]);
+  assert.equal(groupedSlots["13"], undefined);
+});
+
+test("buildGroupedSlotsForAvailability excludes weekend slots for business-day limits", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-05",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-06",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-07",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-08",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: true,
+      limitFutureBookingsMode: "rolling",
+      limitFutureBookingsValue: 5,
+      limitFutureBookingsUnit: "business_days",
+      limitFutureBookingsAlwaysAvailable: false,
+    },
+  });
+
+  assert.ok(groupedSlots["5"]);
+  assert.equal(groupedSlots["6"], undefined);
+  assert.equal(groupedSlots["7"], undefined);
+  assert.ok(groupedSlots["8"]);
+});
+
+test("buildGroupedSlotsForAvailability supports custom business week boundaries", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-07",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-11",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-12",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: true,
+      limitFutureBookingsMode: "rolling",
+      limitFutureBookingsValue: 20,
+      limitFutureBookingsUnit: "business_days",
+      limitFutureBookingsAlwaysAvailable: false,
+      businessWeekStartDay: 7,
+      businessWeekEndDay: 4,
+    },
+  });
+
+  assert.ok(groupedSlots["7"]);
+  assert.ok(groupedSlots["11"]);
+  assert.equal(groupedSlots["12"], undefined);
+});
+
+test("buildGroupedSlotsForAvailability rolling limit does not reset in later months", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-02",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-04-03",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+      {
+        date: "2030-05-01",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 4,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: true,
+      limitFutureBookingsMode: "rolling",
+      limitFutureBookingsValue: 2,
+      limitFutureBookingsUnit: "calendar_days",
+      limitFutureBookingsAlwaysAvailable: false,
+    },
+  });
+
+  assert.deepEqual(Object.keys(groupedSlots), []);
+});
+
 test("date overrides take precedence over weekly availability", () => {
   const localDate = DateTime.fromISO("2030-04-05", { zone: "UTC" });
   const weeklyAvailability = [

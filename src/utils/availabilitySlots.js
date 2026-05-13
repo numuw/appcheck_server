@@ -194,6 +194,179 @@ const getMinimumNoticeDiff = ({ slotStart, now, minimumNoticeType }) => {
   }
 };
 
+const normalizeWeekday = (day, fallback) => {
+  const parsed = Number(day);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 7) {
+    return fallback;
+  }
+  return parsed;
+};
+
+const buildBusinessWeekdaySet = (startDay, endDay) => {
+  const normalizedStart = normalizeWeekday(startDay, 1);
+  const normalizedEnd = normalizeWeekday(endDay, 5);
+
+  const allowedDays = new Set();
+  let cursor = normalizedStart;
+
+  for (let guard = 0; guard < 7; guard += 1) {
+    allowedDays.add(cursor);
+    if (cursor === normalizedEnd) {
+      break;
+    }
+    cursor = cursor === 7 ? 1 : cursor + 1;
+  }
+
+  return allowedDays;
+};
+
+const addBusinessDays = (startDate, daysToAdd, businessWeekdaySet) => {
+  let cursor = startDate;
+  let remaining = daysToAdd;
+  const allowedDays = businessWeekdaySet ?? new Set([1, 2, 3, 4, 5]);
+
+  while (remaining > 0) {
+    cursor = cursor.plus({ days: 1 });
+    if (allowedDays.has(cursor.weekday)) {
+      remaining -= 1;
+    }
+  }
+
+  return cursor;
+};
+
+const buildFutureBookingWindow = ({
+  limitFutureBookingsEnabled,
+  limitFutureBookingsMode,
+  limitFutureBookingsValue,
+  limitFutureBookingsUnit,
+  limitFutureBookingsAlwaysAvailable,
+  businessWeekStartDay,
+  businessWeekEndDay,
+  limitFutureBookingsStartDate,
+  limitFutureBookingsEndDate,
+  viewerTimezone,
+  nowUtc,
+}) => {
+  if (!limitFutureBookingsEnabled) {
+    return null;
+  }
+
+  const nowViewer = nowUtc.setZone(viewerTimezone);
+
+  if (limitFutureBookingsMode === "dateRange") {
+    const startDate = DateTime.fromISO(String(limitFutureBookingsStartDate), {
+      zone: viewerTimezone,
+    }).startOf("day");
+    const endDate = DateTime.fromISO(String(limitFutureBookingsEndDate), {
+      zone: viewerTimezone,
+    }).endOf("day");
+
+    if (!startDate.isValid || !endDate.isValid || endDate < startDate) {
+      return null;
+    }
+
+    return {
+      start: startDate,
+      end: endDate,
+      mode: "dateRange",
+      unit: null,
+      businessDaysOnly: false,
+    };
+  }
+
+  const limitAmount = Number(limitFutureBookingsValue);
+  if (!Number.isFinite(limitAmount) || limitAmount <= 0) {
+    return null;
+  }
+
+  const start = limitFutureBookingsAlwaysAvailable
+    ? nowViewer.startOf("day")
+    : nowViewer;
+  const businessWeekdaySet = buildBusinessWeekdaySet(
+    businessWeekStartDay,
+    businessWeekEndDay,
+  );
+
+  let end;
+
+  switch (limitFutureBookingsUnit) {
+    case "calendar_days":
+      end = start.plus({ days: limitAmount });
+      break;
+    case "business_days":
+      end = addBusinessDays(
+        start.startOf("day"),
+        limitAmount,
+        businessWeekdaySet,
+      );
+      break;
+    case "weeks":
+      end = start.plus({ weeks: limitAmount });
+      break;
+    case "months":
+      end = start.plus({ months: limitAmount });
+      break;
+    default:
+      return null;
+  }
+
+  return {
+    start,
+    end:
+      limitFutureBookingsUnit === "business_days" ||
+      limitFutureBookingsAlwaysAvailable
+        ? end.endOf("day")
+        : end,
+    mode: "rolling",
+    unit: limitFutureBookingsUnit,
+    businessDaysOnly: limitFutureBookingsUnit === "business_days",
+    businessWeekdaySet,
+    rollingMaxOpenDates: limitAmount,
+  };
+};
+
+const isWithinFutureBookingWindow = ({ viewerSlot, futureBookingWindow }) => {
+  if (!futureBookingWindow) {
+    return true;
+  }
+
+  if (
+    futureBookingWindow.businessDaysOnly &&
+    futureBookingWindow.businessWeekdaySet &&
+    !futureBookingWindow.businessWeekdaySet.has(viewerSlot.weekday)
+  ) {
+    return false;
+  }
+
+  if (viewerSlot < futureBookingWindow.start) {
+    return false;
+  }
+
+  if (futureBookingWindow.mode === "rolling") {
+    return true;
+  }
+
+  return (
+    viewerSlot >= futureBookingWindow.start &&
+    viewerSlot <= futureBookingWindow.end
+  );
+};
+
+const isViewerDateInRequestedMonth = ({
+  viewerDateISO,
+  viewerMonthRange,
+  viewerTimezone,
+}) => {
+  const viewerDate = DateTime.fromISO(viewerDateISO, {
+    zone: viewerTimezone,
+  }).startOf("day");
+
+  return (
+    viewerDate >= viewerMonthRange.start && viewerDate < viewerMonthRange.end
+  );
+};
+
 const filterSlotsAndAddUsers = (slots) => {
   const slotMap = new Map();
 
@@ -362,8 +535,10 @@ const buildGroupedSlotsForAvailability = ({
   year,
   month,
   fallbackUserId,
+  futureBookingWindowSettings,
+  nowUtc,
 }) => {
-  const nowUtc = DateTime.utc();
+  const effectiveNowUtc = nowUtc ?? DateTime.utc();
   const availabilityTimezone = availability.timezone || "UTC";
   const weeklyAvailability = safeParseJSON(
     availability.availability,
@@ -381,6 +556,17 @@ const buildGroupedSlotsForAvailability = ({
     viewerMonthEnd: viewerMonthRange.end,
     hostTimezone: availabilityTimezone,
   });
+  const rollingMode =
+    futureBookingWindowSettings?.limitFutureBookingsMode === "rolling";
+  const rollingViewerStart = rollingMode
+    ? futureBookingWindowSettings?.limitFutureBookingsAlwaysAvailable
+      ? effectiveNowUtc.setZone(viewerTimezone).startOf("day")
+      : effectiveNowUtc.setZone(viewerTimezone)
+    : viewerMonthRange.start;
+  const rollingHostRangeStart = rollingViewerStart
+    .setZone(availabilityTimezone)
+    .startOf("day")
+    .minus({ days: 1 });
 
   const normalizedBookings = bookings
     .map(normalizeBookingRecord)
@@ -388,8 +574,14 @@ const buildGroupedSlotsForAvailability = ({
       ({ start, end }) =>
         start?.isValid && end?.isValid && end.toMillis() > start.toMillis(),
     );
+  const futureBookingWindow = buildFutureBookingWindow({
+    ...futureBookingWindowSettings,
+    viewerTimezone,
+    nowUtc: effectiveNowUtc,
+  });
   const groupedSlots = {};
-  let cursor = hostRange.start;
+  const allRollingSlotsByDate = {};
+  let cursor = rollingMode ? rollingHostRangeStart : hostRange.start;
 
   while (cursor < hostRange.end) {
     const selectedAvailability = getAvailabilityForLocalDate({
@@ -422,12 +614,12 @@ const buildGroupedSlotsForAvailability = ({
           viewerSlot >= viewerMonthRange.start &&
           viewerSlot < viewerMonthRange.end;
 
-        if (!isInRequestedMonth) {
+        if (!rollingMode && !isInRequestedMonth) {
           slotStart = slotEnd;
           continue;
         }
 
-        const isFutureSlot = slotStart > nowUtc;
+        const isFutureSlot = slotStart > effectiveNowUtc;
         const hasConflict = normalizedBookings.some(({ start, end }) => {
           const bufferedStart = start.minus({ minutes: bufferTimeBefore });
           const bufferedEnd = end.plus({ minutes: bufferTimeAfter });
@@ -436,19 +628,39 @@ const buildGroupedSlotsForAvailability = ({
         const satisfiesMinimumNotice =
           getMinimumNoticeDiff({
             slotStart,
-            now: nowUtc,
+            now: effectiveNowUtc,
             minimumNoticeType,
           }) >= minimumNotice;
+        const isWithinBookingWindow = isWithinFutureBookingWindow({
+          viewerSlot,
+          futureBookingWindow,
+        });
 
-        if (isFutureSlot && !hasConflict && satisfiesMinimumNotice) {
-          const dayKey = String(viewerSlot.day);
-          groupedSlots[dayKey] = groupedSlots[dayKey] ?? [];
-          groupedSlots[dayKey].push({
+        if (
+          isFutureSlot &&
+          !hasConflict &&
+          satisfiesMinimumNotice &&
+          isWithinBookingWindow
+        ) {
+          const nextSlot = {
             formattedTime: slotStart.toUTC().toFormat("HH:mm:ss"),
             utcTime: slotStart.toUTC().toISO(),
             originalDate: cursor.toISODate(),
             user: slot.user || fallbackUserId,
-          });
+          };
+
+          if (rollingMode) {
+            const viewerDateISO = viewerSlot.toISODate();
+            if (viewerDateISO) {
+              allRollingSlotsByDate[viewerDateISO] =
+                allRollingSlotsByDate[viewerDateISO] ?? [];
+              allRollingSlotsByDate[viewerDateISO].push(nextSlot);
+            }
+          } else if (isInRequestedMonth) {
+            const dayKey = String(viewerSlot.day);
+            groupedSlots[dayKey] = groupedSlots[dayKey] ?? [];
+            groupedSlots[dayKey].push(nextSlot);
+          }
         }
 
         slotStart = slotEnd;
@@ -456,6 +668,36 @@ const buildGroupedSlotsForAvailability = ({
     }
 
     cursor = cursor.plus({ days: 1 });
+  }
+
+  if (futureBookingWindow?.mode === "rolling") {
+    const maxOpenDates = Number(futureBookingWindow.rollingMaxOpenDates || 0);
+    const selectedDateKeys = Object.keys(allRollingSlotsByDate)
+      .sort((left, right) => left.localeCompare(right))
+      .slice(0, maxOpenDates);
+    const rollingGroupedSlots = {};
+
+    selectedDateKeys.forEach((viewerDateISO) => {
+      if (
+        !isViewerDateInRequestedMonth({
+          viewerDateISO,
+          viewerMonthRange,
+          viewerTimezone,
+        })
+      ) {
+        return;
+      }
+
+      const dayKey = String(
+        DateTime.fromISO(viewerDateISO, { zone: viewerTimezone }).day,
+      );
+      rollingGroupedSlots[dayKey] = rollingGroupedSlots[dayKey] ?? [];
+      rollingGroupedSlots[dayKey].push(
+        ...(allRollingSlotsByDate[viewerDateISO] || []),
+      );
+    });
+
+    return rollingGroupedSlots;
   }
 
   return groupedSlots;
@@ -520,6 +762,26 @@ export const buildManagedAvailabilityResponse = async ({
   );
   const minimumNotice = Number(eventTypeSetting?.settings?.minimumNotice || 0);
   const minimumNoticeType = eventTypeSetting?.settings?.minimumNoticeType;
+  const futureBookingWindowSettings = {
+    limitFutureBookingsEnabled: Boolean(
+      eventTypeSetting?.settings?.limitFutureBookingsEnabled,
+    ),
+    limitFutureBookingsMode:
+      eventTypeSetting?.settings?.limitFutureBookingsMode || "rolling",
+    limitFutureBookingsValue:
+      eventTypeSetting?.settings?.limitFutureBookingsValue,
+    limitFutureBookingsUnit:
+      eventTypeSetting?.settings?.limitFutureBookingsUnit || "business_days",
+    limitFutureBookingsAlwaysAvailable: Boolean(
+      eventTypeSetting?.settings?.limitFutureBookingsAlwaysAvailable,
+    ),
+    businessWeekStartDay: eventTypeSetting?.settings?.businessWeekStartDay,
+    businessWeekEndDay: eventTypeSetting?.settings?.businessWeekEndDay,
+    limitFutureBookingsStartDate:
+      eventTypeSetting?.settings?.limitFutureBookingsStartDate,
+    limitFutureBookingsEndDate:
+      eventTypeSetting?.settings?.limitFutureBookingsEndDate,
+  };
   const groupedSlots = mergeGroupedSlots(
     buildGroupedSlotsForAvailability({
       availability,
@@ -533,6 +795,7 @@ export const buildManagedAvailabilityResponse = async ({
       year,
       month,
       fallbackUserId: userId,
+      futureBookingWindowSettings,
     }),
   );
 
@@ -619,6 +882,26 @@ export const buildRoundRobinAvailabilityResponse = async ({
   );
   const minimumNotice = Number(eventTypeSetting?.settings?.minimumNotice || 0);
   const minimumNoticeType = eventTypeSetting?.settings?.minimumNoticeType;
+  const futureBookingWindowSettings = {
+    limitFutureBookingsEnabled: Boolean(
+      eventTypeSetting?.settings?.limitFutureBookingsEnabled,
+    ),
+    limitFutureBookingsMode:
+      eventTypeSetting?.settings?.limitFutureBookingsMode || "rolling",
+    limitFutureBookingsValue:
+      eventTypeSetting?.settings?.limitFutureBookingsValue,
+    limitFutureBookingsUnit:
+      eventTypeSetting?.settings?.limitFutureBookingsUnit || "business_days",
+    limitFutureBookingsAlwaysAvailable: Boolean(
+      eventTypeSetting?.settings?.limitFutureBookingsAlwaysAvailable,
+    ),
+    businessWeekStartDay: eventTypeSetting?.settings?.businessWeekStartDay,
+    businessWeekEndDay: eventTypeSetting?.settings?.businessWeekEndDay,
+    limitFutureBookingsStartDate:
+      eventTypeSetting?.settings?.limitFutureBookingsStartDate,
+    limitFutureBookingsEndDate:
+      eventTypeSetting?.settings?.limitFutureBookingsEndDate,
+  };
 
   const groupedSlots = mergeGroupedSlots(
     ...allNormalizedAvailability.map((availability) => {
@@ -639,6 +922,7 @@ export const buildRoundRobinAvailabilityResponse = async ({
         year,
         month,
         fallbackUserId: availability.user,
+        futureBookingWindowSettings,
       });
     }),
   );
@@ -662,6 +946,12 @@ export const __testables = {
   EMPTY_WEEK,
   safeParseJSON,
   parseClockToMinutes,
+  normalizeWeekday,
+  buildBusinessWeekdaySet,
+  addBusinessDays,
+  isViewerDateInRequestedMonth,
+  buildFutureBookingWindow,
+  isWithinFutureBookingWindow,
   getAvailabilityWeekday,
   getAvailabilityForLocalDate,
   resolveStoredUtcDateTime,
