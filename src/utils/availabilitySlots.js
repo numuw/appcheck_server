@@ -556,17 +556,6 @@ const buildGroupedSlotsForAvailability = ({
     viewerMonthEnd: viewerMonthRange.end,
     hostTimezone: availabilityTimezone,
   });
-  const rollingMode =
-    futureBookingWindowSettings?.limitFutureBookingsMode === "rolling";
-  const rollingViewerStart = rollingMode
-    ? futureBookingWindowSettings?.limitFutureBookingsAlwaysAvailable
-      ? effectiveNowUtc.setZone(viewerTimezone).startOf("day")
-      : effectiveNowUtc.setZone(viewerTimezone)
-    : viewerMonthRange.start;
-  const rollingHostRangeStart = rollingViewerStart
-    .setZone(availabilityTimezone)
-    .startOf("day")
-    .minus({ days: 1 });
 
   const normalizedBookings = bookings
     .map(normalizeBookingRecord)
@@ -579,6 +568,14 @@ const buildGroupedSlotsForAvailability = ({
     viewerTimezone,
     nowUtc: effectiveNowUtc,
   });
+  const rollingMode = futureBookingWindow?.mode === "rolling";
+  const rollingViewerStart = rollingMode
+    ? futureBookingWindow.start
+    : viewerMonthRange.start;
+  const rollingHostRangeStart = rollingViewerStart
+    .setZone(availabilityTimezone)
+    .startOf("day")
+    .minus({ days: 1 });
   const groupedSlots = {};
   const allRollingSlotsByDate = {};
   let cursor = rollingMode ? rollingHostRangeStart : hostRange.start;

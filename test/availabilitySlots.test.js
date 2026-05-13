@@ -519,6 +519,41 @@ test("buildGroupedSlotsForAvailability rolling limit does not reset in later mon
   assert.deepEqual(Object.keys(groupedSlots), []);
 });
 
+test("buildGroupedSlotsForAvailability returns normal availability when future limit is disabled", () => {
+  const availability = buildAvailability({
+    timezone: "UTC",
+    dateOverrides: [
+      {
+        date: "2030-04-10",
+        availability: [{ start: "09:00", end: "10:00" }],
+      },
+    ],
+  });
+
+  const groupedSlots = buildGroupedSlotsForAvailability({
+    availability,
+    bookings: [],
+    bufferTimeAfter: 0,
+    bufferTimeBefore: 0,
+    minimumNotice: 0,
+    minimumNoticeType: "minutes",
+    effectiveIncrement: 60,
+    viewerTimezone: "UTC",
+    year: 2030,
+    month: 3,
+    fallbackUserId: "host-1",
+    nowUtc: DateTime.fromISO("2030-04-01T00:00:00.000Z", { zone: "utc" }),
+    futureBookingWindowSettings: {
+      limitFutureBookingsEnabled: false,
+      limitFutureBookingsMode: "rolling",
+      limitFutureBookingsValue: 10,
+      limitFutureBookingsUnit: "calendar_days",
+    },
+  });
+
+  assert.ok(groupedSlots["10"]);
+});
+
 test("date overrides take precedence over weekly availability", () => {
   const localDate = DateTime.fromISO("2030-04-05", { zone: "UTC" });
   const weeklyAvailability = [
